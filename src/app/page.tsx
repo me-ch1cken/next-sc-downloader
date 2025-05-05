@@ -1,36 +1,49 @@
 'use client';
 
+import Playlist from "@/components/playlist";
 import { useState } from "react";
+
+interface PlaylistProps {
+  title: string;
+  tracks: Array<{
+      artwork_url: string;
+      author: string;
+      duration: number;
+      title: string;
+  }>;
+}
 
 export default function HomePage() {
   const [url, setUrl] = useState("");
+  const [playlist, setPlaylist] = useState({} as PlaylistProps);
 
   const handleDownload = async () => {
     if (!url) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/download?url=${encodeURIComponent(url)}`);
+      const response = await fetch(`http://localhost:8000/download?url=${url}`);
       if (!response.ok) throw new Error("Download failed");
 
       const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filename = contentDisposition?.split("filename=")[1]?.replace(/"/g, "") || "tracks.zip";
+
       const downloadUrl = window.URL.createObjectURL(blob);
+
       const a = document.createElement("a");
       a.href = downloadUrl;
-
-      // Optional: use server-sent filename, or fallback
-      const disposition = response.headers.get("Content-Disposition");
-      const filename = disposition?.match(/filename="?(.+?)"?$/)?.[1] ?? "track.mp3";
       a.download = filename;
-
       document.body.appendChild(a);
       a.click();
       a.remove();
+
       window.URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
-      console.error("Error downloading file:", err);
-      alert("Download failed. Please try again.");
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Download failed.");
     }
   };
+
 
 
   return (
@@ -56,7 +69,15 @@ export default function HomePage() {
               placeholder="Enter SoundCloud track URL..."
               className="flex-1 border px-3 py-2 rounded"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={async (e) => {
+                setUrl(e.target.value);
+                if (e.target.value.length > 0) {
+                 const res = await fetch(`http://localhost:8000/content?url=${e.target.value}`);
+                 const data = await res.json();
+                 setPlaylist(data);
+                 console.log(data);
+                }
+              }}
             />
             <button
               className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
@@ -66,6 +87,8 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+
+        <Playlist title={playlist?.title} tracks={playlist.tracks} />
       </main>
 
       {/* Footer */}
