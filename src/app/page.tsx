@@ -17,34 +17,12 @@ export default function HomePage() {
   const [url, setUrl] = useState("");
   const [playlist, setPlaylist] = useState({} as PlaylistProps);
 
-  const handleDownload = async () => {
-    if (!url) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/download?url=${url}`);
-      if (!response.ok) throw new Error("Download failed");
-
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("Content-Disposition");
-      const filename = contentDisposition?.split("filename=")[1]?.replace(/"/g, "") || "tracks.zip";
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      alert("Download failed.");
-    }
+  const handleDownload = (url: string) => {
+    const a = document.createElement('a');
+    a.href = `http://localhost:8000/download?url=${encodeURIComponent(url)}`;
+    a.download = ''; // triggers download UI
+    a.click();
   };
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -81,7 +59,7 @@ export default function HomePage() {
             />
             <button
               className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
-              onClick={handleDownload}
+              onClick={() => handleDownload(url)}
             >
               Download
             </button>
