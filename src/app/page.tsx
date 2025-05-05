@@ -3,6 +3,10 @@
 import Playlist from "@/components/playlist";
 import { useState } from "react";
 
+import Loader from 'rsuite/Loader';
+// (Optional) Import component styles. If you are using Less, import the `index.less` file. 
+import 'rsuite/Loader/styles/index.css';
+
 interface PlaylistProps {
   title: string;
   tracks: Array<{
@@ -13,9 +17,13 @@ interface PlaylistProps {
   }>;
 }
 
+// Regex pattern to validate SoundCloud set URL
+const validSoundCloudUrlPattern = /^https:\/\/soundcloud\.com\/[\w-]+\/sets\/[\w-]+$/;
+
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [playlist, setPlaylist] = useState({} as PlaylistProps);
+  const [playlistLoading, setPlaylistLoading] = useState(false);
 
   const handleDownload = (url: string) => {
     const a = document.createElement('a');
@@ -49,16 +57,30 @@ export default function HomePage() {
               value={url}
               onChange={async (e) => {
                 setUrl(e.target.value);
-                if (e.target.value.length > 0) {
-                 const res = await fetch(`http://localhost:8000/content?url=${e.target.value}`);
-                 const data = await res.json();
-                 setPlaylist(data);
-                 console.log(data);
+                
+                // Validate if the URL is a valid SoundCloud playlist/set URL
+                if (validSoundCloudUrlPattern.test(e.target.value)) {
+
+                  setPlaylistLoading(true);
+
+                  try {
+                    const res = await fetch(`http://localhost:8000/content?url=${e.target.value}`);
+                    const data = await res.json();
+                    setPlaylist(data); // Assuming 'data' contains the playlist metadata
+                    console.log(playlistLoading)
+                    setPlaylistLoading(false);
+                  } catch (err) {
+                    console.error("Error fetching playlist:", err);
+                    setPlaylistLoading(false);
+                  }
+                } else {
+                  setPlaylist({} as PlaylistProps); // Clear playlist if the URL is invalid
+                  console.log("Invalid SoundCloud playlist URL.");
                 }
               }}
             />
             <button
-              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 cursor-pointer"
               onClick={() => handleDownload(url)}
             >
               Download
@@ -66,7 +88,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <Playlist title={playlist?.title} tracks={playlist.tracks} />
+        {
+          playlistLoading && (
+            <div className="mt-4">
+              <Loader size="md" content="Loading content..." vertical />
+            </div>
+          )
+        }
+
+        {
+          !playlistLoading && (
+              <Playlist title={playlist?.title} tracks={playlist.tracks} />
+          )
+        }
       </main>
 
       {/* Footer */}

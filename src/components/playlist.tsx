@@ -10,7 +10,14 @@ interface PlaylistProps {
 
 export default function Playlist({title, tracks} : PlaylistProps) {
 
-    if (!tracks || tracks.length === 0) return null;
+    if (!tracks || tracks.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center p-4">
+                <h2 className="text-2xl font-bold mb-4">Vul een geldige link naar een soundcloud playlist of track in</h2>
+                <p className="text-lg text-gray-600">No tracks available.</p>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col items-center justify-center p-4">
