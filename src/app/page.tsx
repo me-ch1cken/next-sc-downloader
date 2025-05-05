@@ -1,4 +1,38 @@
+'use client';
+
+import { useState } from "react";
+
 export default function HomePage() {
+  const [url, setUrl] = useState("");
+
+  const handleDownload = async () => {
+    if (!url) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/download?url=${encodeURIComponent(url)}`);
+      if (!response.ok) throw new Error("Download failed");
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+
+      // Optional: use server-sent filename, or fallback
+      const disposition = response.headers.get("Content-Disposition");
+      const filename = disposition?.match(/filename="?(.+?)"?$/)?.[1] ?? "track.mp3";
+      a.download = filename;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error("Error downloading file:", err);
+      alert("Download failed. Please try again.");
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Navbar */}
@@ -21,8 +55,13 @@ export default function HomePage() {
               type="url"
               placeholder="Enter SoundCloud track URL..."
               className="flex-1 border px-3 py-2 rounded"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
             />
-            <button className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+            <button
+              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+              onClick={handleDownload}
+            >
               Download
             </button>
           </div>
