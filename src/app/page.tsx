@@ -6,6 +6,7 @@ import { useState } from "react";
 import Loader from 'rsuite/Loader';
 // (Optional) Import component styles. If you are using Less, import the `index.less` file. 
 import 'rsuite/Loader/styles/index.css';
+import { toast } from "sonner";
 
 interface PlaylistProps {
   title: string;
@@ -30,6 +31,11 @@ export default function HomePage() {
     a.href = `http://localhost:8000/download?url=${encodeURIComponent(url)}`;
     a.download = ''; // triggers download UI
     a.click();
+
+    toast("Please wait while we prepare your download...", {
+      duration: 10000,
+      description: "This may take a while depending on the size of your playlist."
+    });
   };
 
   return (
@@ -62,6 +68,9 @@ export default function HomePage() {
                 if (validSoundCloudUrlPattern.test(e.target.value)) {
 
                   setPlaylistLoading(true);
+                  toast("Fetching playlist metadata...", {
+                    duration: 2000
+                  });
 
                   try {
                     const res = await fetch(`http://localhost:8000/content?url=${e.target.value}`);
