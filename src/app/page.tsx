@@ -131,7 +131,8 @@ export default function HomePage() {
               }}
             />
             <button
-              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 cursor-pointer"
+              className={`px-6 py-2 rounded text-white transition-colors duration-200
+                ${playlistDownloading ? "bg-gray-600 cursor-not-allowed opacity-50" : "bg-black hover:bg-gray-800 cursor-pointer"}`}
               onClick={() => handleDownload(url)}
               disabled={playlistDownloading}
             >
