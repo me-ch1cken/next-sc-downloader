@@ -25,18 +25,60 @@ export default function HomePage() {
   const [url, setUrl] = useState("");
   const [playlist, setPlaylist] = useState({} as PlaylistProps);
   const [playlistLoading, setPlaylistLoading] = useState(false);
+  const [playlistDownloading, setPlaylistDownloading] = useState(false);
 
-  const handleDownload = (url: string) => {
-    const a = document.createElement('a');
-    a.href = `http://localhost:8000/download?url=${encodeURIComponent(url)}`;
-    a.download = ''; // triggers download UI
-    a.click();
-
-    toast("Please wait while we prepare your download...", {
-      duration: 10000,
-      description: "This may take a while depending on the size of your playlist."
+  const handleDownload = async (url: string) => {
+    setPlaylistDownloading(true);
+    toast("Preparing your download...", {
+      duration: 5000,
+      description: "Zipping tracks, please wait...",
     });
+  
+    try {
+      // Step 1: Request backend to start preparing the download
+      const prepareRes = await fetch(`http://localhost:8000/prepare-download?url=${url}`, {
+        method: 'POST',
+      });
+      const { downloadId } = await prepareRes.json();
+  
+      if (!downloadId) {
+        throw new Error("Invalid download ID returned.");
+      }
+  
+      // Step 2: Poll for readiness
+      let status = "preparing";
+      let attempts = 0;
+      const maxAttempts = 200; // 20 x 1.5s = 30 seconds max
+  
+      while (status === "preparing" && attempts < maxAttempts) {
+        await new Promise((res) => setTimeout(res, 1500)); // wait 1.5 seconds
+        const statusRes = await fetch(`http://localhost:8000/download-status/${downloadId}`);
+        const statusData = await statusRes.json();
+        status = statusData.status;
+        attempts++;
+      }
+  
+      if (status === "ready") {
+        // Step 3: Trigger download
+        const downloadUrl = `http://localhost:8000/download/${downloadId}`;
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'playlist.zip';
+        a.click();
+  
+        toast.success("Your download is ready!");
+      } else {
+        throw new Error("Download preparation failed or timed out.");
+      }
+  
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to prepare download.");
+    } finally {
+      setPlaylistDownloading(false);
+    }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -91,6 +133,7 @@ export default function HomePage() {
             <button
               className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 cursor-pointer"
               onClick={() => handleDownload(url)}
+              disabled={playlistDownloading}
             >
               Download
             </button>
